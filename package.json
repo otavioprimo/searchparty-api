@@ -1,0 +1,38 @@
+{
+  "name": "Api-Search-Party",
+  "version": "1.0.0",
+  "description": "Api para busca de locais para alugar, chácaras e salões de festas",
+  "main": "server.js",
+  "scripts": {
+    "dev": "nodemon server.js"
+  },
+  "keywords": [
+    "api",
+    "nodejs",
+    "typescript",
+    "mongodb",
+    "chacaras",
+    "saloes de festas"
+  ],
+  "author": "Otavio Primo",
+  "license": "ISC",
+  "devDependencies": {
+    "nodemon": "1.12.0"
+  },
+  "dependencies": {
+    "bcrypt": "^1.0.3",
+    "body-parser": "^1.15.2",
+    "cors": "^2.8.1",
+    "dateformat": "^3.0.2",
+    "express": "^4.14.0",
+    "http-status-codes": "^1.3.0",
+    "jsonwebtoken": "^8.0.1",
+    "md5": "^2.2.1",
+    "mkdirp": "^0.5.1",
+    "mongoose": "^4.6.3",
+    "mongoose-pagination": "^1.0.0",
+    "morgan": "^1.7.0",
+    "nodemailer": "^4.3.1",
+    "superagent": "^3.5.2"
+  }
+}
