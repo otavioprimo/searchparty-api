@@ -32,7 +32,7 @@ var UsarioSchema = new Schema({
     email_confirmado: { type: Boolean, default: false },
     image_perfil: String,
     status: { type: Boolean, default: true },
-    admin: { type: Boolean, default: true },
+    admin: { type: Boolean, default: false },
     token_email_confirmacao: [
         {
             token: { type: String },

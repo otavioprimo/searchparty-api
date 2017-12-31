@@ -7,7 +7,9 @@ const express = require('express'),
     token = require('../../util/token'),
     paginate = require('mongoose-pagination'),
     config = require('../../config'),
-    jwt = require('jsonwebtoken');
+    jwt = require('jsonwebtoken'),
+    async = require('asyncawait/async'),
+    await = require('asyncawait/await');
 
 var Usuario = require('../../models/usuarioModel');
 
@@ -65,27 +67,27 @@ exports.cadastrar_usuario = function (req, res) {
     });
 }
 
-exports.login = function (req, res) {
-    Usuario.findOne({
-        email: req.body.email
-    }, function (err, doc) {
-        if (err) throw err;
-
-        if (!doc)
-            res.status(400).json({ 'error': true, 'message': 'Usuário não existe' });
-        else if (doc) {
-            bcrypt.compare(req.body.senha, doc.senha, function (err, result) {
-                if (!result)
-                    res.status(400).json({ 'error': true, 'message': 'Email ou Senha inválida' });
-                else {
-                    var token = jwt.sign({ id: doc._id, email: doc.email, admin: doc.admin }, config.jwt_token, {
-                        expiresIn: '2h'
-                    });
-                    res.json({ error: false, token: token });
-                }
+exports.login = async function (req, res) {
+    try {
+        let usuario = await Usuario.findOne({ email: req.body.email }).select('+senha');
+        if (!usuario)
+            res.status(400).json({ 'error': true, 'message': 'Usuário não cadastrado' });
+        else {
+            let resp = await compararSenhas(req.body.senha, usuario.senha);
+            var token = jwt.sign({ id: usuario._id, email: usuario.email, admin: usuario.admin }, config.jwt_token, {
+                expiresIn: '2h'
             });
+            res.json({ error: false, token: token });
         }
-    }).select('+senha');
+
+    } catch (err) {
+        res.json({ error: true, mensagem: err })
+    }
+}
+
+async function compararSenhas(senha1, senha2) {
+    var resp = await bcrypt.compare(senha1, senha2);
+    return resp;
 }
 
 exports.alterarSenha = function (req, res) {
@@ -102,55 +104,52 @@ exports.alterarSenha = function (req, res) {
         });
 }
 
-exports.buscar_usuario_id = function (req, res) {
-    Usuario.findById(req.params.id)
-        .select(['-token_email_confirmacao', '-token_rec_senha'])
-        .exec((err, doc) => {
-            if (err)
-                res.status(HttpStatus.OK).json(err);
-            if (!doc)
-                res.status(HttpStatus.OK).json({ error: true, mensagem: 'Usuário não existe' });
-            else
-                res.status(HttpStatus.OK).json({ error: false, data: doc });
+exports.buscar_usuario_id = async function (req, res) {
+    try {
+        let usuario = await Usuario.findById(req.params.id)
+            .select(['-token_email_confirmacao', '-token_rec_senha'])
+            .exec();
+        if (!usuario)
+            res.status(HttpStatus.OK).json({ error: true, mensagem: 'Usuário não existe' });
+        else
+            res.status(HttpStatus.OK).json({ error: false, data: usuario });
+    } catch (err) {
+        res.status(HttpStatus.OK).json({ error: true, mensagem: err });
+    }
 
-        });
+
+
 }
 
-exports.buscar_todos_usuarios = function (req, res) {
-    if (req.user.admin)
-        Usuario.find()
+exports.buscar_todos_usuarios = async function (req, res) {
+    if (req.user.admin) {
+        var usuario = await Usuario.find()
             .paginate(Number(req.query.page), Number(req.query.limit))
             .select(['-token_email_confirmacao', '-token_rec_senha'])
-            .exec((err, doc) => {
-                if (err)
-                    res.status(HttpStatus.BAD_REQUEST).json(err);
-                else
-                    res.status(HttpStatus.OK).json(doc);
-            });
+            .exec();
+        res.status(HttpStatus.OK).json(usuario);
+    }
     else
         res.status(HttpStatus.OK).json({ error: true, mensagem: "Não autorizado" });
 }
 
-exports.manipular_admin = function (req, res) {
-    Usuario.findById(req.user.id)
-        .exec((err, doc) => {
-            if (err)
-                res.status(400).json({ error: true });
-
-            if (doc.admin)
-                Usuario.findByIdAndUpdate(req.body.id, {
-                    $set: {
-                        admin: req.body.isAdmin
-                    }
-                }, {
-                        safe: true,
-                        new: true
-                    }, (err, doc) => {
-                        res.status(HttpStatus.OK).json({ error: false, mensagem: "Atualizado com sucesso" });
-                    });
-            else
-                res.status(HttpStatus.OK).json({ error: true, mensagem: "Não autorizado" });
-        });
+exports.manipular_admin = async function (req, res) {
+    if (req.user.admin) {
+        let usuario = await Usuario.findByIdAndUpdate(req.body.id, {
+            $set: {
+                admin: req.body.admin
+            }
+        }, {
+                safe: true,
+                new: true
+            });
+        if (usuario)
+            res.status(HttpStatus.OK).json({ error: false, mensagem: "Atualizado com sucesso" });
+        else
+            res.status(HttpStatus.OK).json({ error: true, mensagem: "Não foi possível atualizar este usuário" });
+    } else {
+        res.status(HttpStatus.OK).json({ error: true, mensagem: "Não autorizado" });
+    }
 }
 
 function getToken(callback) {
