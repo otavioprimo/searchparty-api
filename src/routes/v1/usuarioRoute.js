@@ -17,4 +17,7 @@ router.route('/:id')
 router.route('/admin')
     .post(tokenController.tokenRequired,usuarioController.manipular_admin);
 
+router.route('/alterarsenha')
+    .put(tokenController.tokenRequired,usuarioController.alterarSenha);
+
 module.exports = router;

@@ -8,14 +8,16 @@
     mongoose = require('mongoose'),
     mkdirp = require('mkdirp'),
     HttpStatus = require('http-status-codes'),
+    validator = require('express-validator'),
     port = process.env.PORT || 5000;
 
 var usuario = require('./src/routes/v1/usuarioRoute'),
     testes = require('./src/routes/v1/testesRoute');
-
 mongoose.connect(config.mongo_uri, {
     useMongoClient: true
 });
+mongoose.Promise = require('bluebird');
+
 
 //Habilitar o cors
 app.all('/*', function (req, res, next) {
@@ -38,7 +40,7 @@ app.use(function (req, res, next) {
     if (token) {
         jwt.verify(token, config.jwt_token, function (err, decoded) {
             if (err) {
-                return res.status(HttpStatus.UNAUTHORIZED);
+                return res.status(HttpStatus.UNAUTHORIZED).json({error:true,mensagem:"Token inválido"});
             } else {
                 req.user = decoded;
                 next();
@@ -55,13 +57,12 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(cors());
 app.use(morgan('dev'));
+app.use(validator());
 
 //Rotas
-// app.use('/', "Hello World");
+// app.use('/', (req,res)=>{res.send("Hello World")});
 app.use('/api/usuario', usuario);
 app.use('/api/testes', testes);
 
 //Inicializa o servidor na porta
 app.listen(port);
-
-//UHSDHUSDHSHUSHAHUASHSUUHUASHHDSHDSUH
