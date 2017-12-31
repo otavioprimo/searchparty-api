@@ -1,6 +1,8 @@
-const nodemailer = require('nodemailer');
+const nodemailer = require('nodemailer'),
+    async = require('asyncawait/async'),
+    await = require('asyncawait/await');
 
-exports.modelo_confirmar_conta = function (nome,token_number) {
+exports.modelo_confirmar_conta = function (nome, token_number) {
 
     let body = '<html>';
     body += '<head>';
@@ -21,14 +23,14 @@ exports.modelo_confirmar_conta = function (nome,token_number) {
     return body;
 }
 
-exports.send = function (destinatario_email, html_body, assunto, successCallback, errorCallback) {
+exports.send = async function (destinatario_email, html_body, assunto) {
     let transporter = nodemailer.createTransport({
         host: 'smtp.gmail.com',
         port: 465,
         secure: true, // true for 465, false for other ports
         auth: {
             user: 'otavioprimo@gmail.com', //Troque para o seu email
-            pass: '********' //Insira a senha do seu Email aqui
+            pass: '*******' //Insira a senha do seu Email aqui
         }
     });
 
@@ -40,9 +42,7 @@ exports.send = function (destinatario_email, html_body, assunto, successCallback
         html: html_body // html body
     };
 
-    // send mail with defined transport object
-    transporter.sendMail(mailOptions, (error, info) => {
-        if (error) errorCallback(error);
-        else successCallback(info);
-    });
+
+    let resp = await transporter.sendMail(mailOptions);
+    return resp;
 }

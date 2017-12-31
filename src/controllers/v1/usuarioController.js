@@ -13,16 +13,10 @@ const express = require('express'),
 
 var Usuario = require('../../models/usuarioModel');
 
-exports.cadastrar_usuario = function (req, res) {
-    var verifyEmail = Boolean;
-
-    Usuario.findOne({
-        email: req.body.email
-    }, (err, doc) => {
-        if (err)
-            res.status(HttpStatus.Ok);
-
-        if (doc == null) {
+exports.cadastrar_usuario = async function (req, res) {
+    try {
+        let user = await Usuario.findOne({ email: req.body.email });
+        if (!user) {
             var token_number;
             var date = new Date();
             var usuario = new Usuario();
@@ -35,36 +29,23 @@ exports.cadastrar_usuario = function (req, res) {
                 token_number = data;
             });
 
-            usuario.save((err, doc) => {
-                if (err)
-                    res.status(HttpStatus.BAD_REQUEST).json({ error: err });
-
-                email.send(req.body.email, email.modelo_confirmar_conta(req.body.nome, token_number), 'Confirmar Conta', data => {
-                    console.log("Email enviado para " + req.body.email);
-                }, error => {
-                    console.log("Falha email para " + req.body.email);
-                });
-
-                Usuario.findByIdAndUpdate(doc._id, {
-                    $push: {
-                        'token_email_confirmacao': {
-                            token: token_number,
-                            ativo: true
-                        }
+            let doc = await usuario.save();
+            let email_confirm = await email.send(req.body.email, email.modelo_confirmar_conta(req.body.nome, token_number), 'Confirmar Conta');
+            let usuario_update = await Usuario.findByIdAndUpdate(doc._id, {
+                $push: {
+                    'token_email_confirmacao': {
+                        token: token_number,
+                        ativo: true
                     }
-                }, {
-                        safe: true,
-                        new: true
-                    }, (err, doc) => {
-                        // console.log(doc);
-                    });
-
-                res.status(HttpStatus.OK).json({ error: false, mensagem: "Salvo com sucesso" });
-            });
+                }
+            }, { safe: true, new: true });
+            res.status(HttpStatus.OK).json({ error: false, mensagem: "Salvo com sucesso" });
         } else {
             res.status(HttpStatus.OK).json({ error: true, mensagem: "Este email já existe" });
         }
-    });
+    } catch (err) {
+        res.status(HttpStatus.CONFLICT).json({ error: trhe, mensagem: "Ocorreu um erro ao cadastrar o usuário" });
+    }
 }
 
 exports.login = async function (req, res) {
@@ -90,18 +71,19 @@ async function compararSenhas(senha1, senha2) {
     return resp;
 }
 
-exports.alterarSenha = function (req, res) {
-    User.findByIdAndUpdate(req.user._id, {
-        $set: { senha: bcrypt.hashSync(req.body.senha, 10) }
-    }, {
-            safe: true,
-            new: true,
-        }, function (err, doc) {
-            if (err)
-                res.status(HttpStatus.BAD_REQUEST).send(err);
+exports.alterarSenha = async function (req, res) {
+    try {
+        let usuario = await User.findByIdAndUpdate(req.user._id, {
+            $set: { senha: bcrypt.hashSync(req.body.senha, 10) }
+        }, { safe: true, new: true });
+        if (usuario)
+            res.status(HttpStatus.OK).json({ error: false, mensagem: 'Senha alterada com sucesso' });
+        else
+            res.status(HttpStatus.OK).json({ error: true, mensagem: 'Falha ao alterar a senha' });
+    } catch (err) {
+        res.status(HttpStatus.OK).json({ error: true, mensagem: 'Falha ao alterar a senha' });
+    }
 
-            res.status(HttpStatus.OK).json(doc);
-        });
 }
 
 exports.buscar_usuario_id = async function (req, res) {
@@ -116,9 +98,6 @@ exports.buscar_usuario_id = async function (req, res) {
     } catch (err) {
         res.status(HttpStatus.OK).json({ error: true, mensagem: err });
     }
-
-
-
 }
 
 exports.buscar_todos_usuarios = async function (req, res) {
@@ -139,10 +118,7 @@ exports.manipular_admin = async function (req, res) {
             $set: {
                 admin: req.body.admin
             }
-        }, {
-                safe: true,
-                new: true
-            });
+        }, { safe: true, new: true });
         if (usuario)
             res.status(HttpStatus.OK).json({ error: false, mensagem: "Atualizado com sucesso" });
         else
