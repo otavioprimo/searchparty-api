@@ -1,4 +1,4 @@
-const express = require('express'),
+﻿const express = require('express'),
     app = express(),
     bodyParser = require('body-parser'),
     cors = require('cors'),
@@ -63,3 +63,5 @@ app.use('/api/testes', testes);
 
 //Inicializa o servidor na porta
 app.listen(port);
+
+//AQUI È UM COMENTÁRIO PORRA
