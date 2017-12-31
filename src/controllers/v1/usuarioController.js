@@ -23,13 +23,11 @@ exports.cadastrar_usuario = function (req, res) {
         if (doc == null) {
             var token_number;
             var date = new Date();
-            var date_formated = dateFormat(date, "dd/mm/yyyy HH:MM:ss");
             var usuario = new Usuario();
 
             usuario.nome = req.body.nome;
             usuario.email = req.body.email;
             usuario.senha = bcrypt.hashSync(req.body.senha, 10);
-            usuario.created = date_formated;
 
             token.gerar_token(data => {
                 token_number = data;
@@ -48,8 +46,7 @@ exports.cadastrar_usuario = function (req, res) {
                 Usuario.findByIdAndUpdate(doc._id, {
                     $push: {
                         'token_email_confirmacao': {
-                            descricao: token_number,
-                            created: date_formated,
+                            token: token_number,
                             ativo: true
                         }
                     }
@@ -81,7 +78,7 @@ exports.login = function (req, res) {
                 if (!result)
                     res.status(400).json({ 'error': true, 'message': 'Email ou Senha inválida' });
                 else {
-                    var token = jwt.sign({ id: doc._id, email: doc.email }, config.jwt_token, {
+                    var token = jwt.sign({ id: doc._id, email: doc.email, admin: doc.admin }, config.jwt_token, {
                         expiresIn: '2h'
                     });
                     res.json({ error: false, token: token });
@@ -120,31 +117,25 @@ exports.buscar_usuario_id = function (req, res) {
 }
 
 exports.buscar_todos_usuarios = function (req, res) {
-    Usuario.findById(req.user.id)
-        .exec((err, doc) => {
-            if (err)
-                res.status(HttpStatus.BAD_REQUEST);
-
-            if (doc.admin)
-                Usuario.find()
-                    .paginate(Number(req.query.page), Number(req.query.limit))
-                    .select(['-token_email_confirmacao', '-token_rec_senha'])
-                    .exec((err, doc) => {
-                        if (err)
-                            res.status(HttpStatus.BAD_REQUEST).json(err);
-                        else
-                            res.status(HttpStatus.OK).json(doc);
-                    });
-            else
-                res.status(HttpStatus.OK).json({ error: true, mensagem: "Não autorizado" });
-        });
+    if (req.user.admin)
+        Usuario.find()
+            .paginate(Number(req.query.page), Number(req.query.limit))
+            .select(['-token_email_confirmacao', '-token_rec_senha'])
+            .exec((err, doc) => {
+                if (err)
+                    res.status(HttpStatus.BAD_REQUEST).json(err);
+                else
+                    res.status(HttpStatus.OK).json(doc);
+            });
+    else
+        res.status(HttpStatus.OK).json({ error: true, mensagem: "Não autorizado" });
 }
 
 exports.manipular_admin = function (req, res) {
     Usuario.findById(req.user.id)
         .exec((err, doc) => {
             if (err)
-                res.status(400).json({error:true});
+                res.status(400).json({ error: true });
 
             if (doc.admin)
                 Usuario.findByIdAndUpdate(req.body.id, {
