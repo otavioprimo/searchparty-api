@@ -10,7 +10,8 @@ const express = require('express'),
     HttpStatus = require('http-status-codes'),
     port = process.env.PORT || 5000;
 
-var usuario = require('./src/routes/v1/usuarioRoute');
+var usuario = require('./src/routes/v1/usuarioRoute'),
+    testes = require('./src/routes/v1/testesRoute');
 
 mongoose.connect(config.mongo_uri, {
     useMongoClient: true
@@ -58,6 +59,7 @@ app.use(morgan('dev'));
 //Rotas
 // app.use('/', "Hello World");
 app.use('/api/usuario', usuario);
+app.use('/api/testes', testes);
 
 //Inicializa o servidor na porta
 app.listen(port);
